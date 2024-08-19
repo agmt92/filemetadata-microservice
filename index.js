@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const multer = require('multer');
 
 const app = express();
 
@@ -43,14 +44,44 @@ app.listen(port, function() {
   console.log(`Listening on port ${port}`);
 });
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + Date.now());
+
+
+// post file metadata
+
+app.post('/api/fileanalyse', multer().single('upfile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  } else if (req.file.size > 10485760) {
+    return res.status(400).json({ error: 'File too large' });
+  } else {
+    res.json({ name: req.file.originalname, type: req.file.mimetype, size: req.file.size });
   }
 });
 
-const upload = multer({ storage: storage });
+
+// visualize uploaded files as a table
+
+app.get('/api/fileanalyse', (req, res) => {
+  res.sendFile(`${process.cwd()}/views/fileanalyse.html`);
+}
+);
+
+// delete all uploaded files from DB using curl -X
+
+app.delete('/api/fileanalyse', (req, res) => {
+  try {
+    mongoose.connection.db.dropCollection('uploads', (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+        res.json({ message: 'Collection uploads dropped' });
+      }
+    });
+  }
+  catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  } 
+}
+);
