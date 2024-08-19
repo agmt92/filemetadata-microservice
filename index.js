@@ -42,3 +42,15 @@ const User = mongoose.model('User', userSchema);
 app.listen(port, function() {
   console.log(`Listening on port ${port}`);
 });
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now());
+  }
+});
+
+const upload = multer({ storage: storage });
